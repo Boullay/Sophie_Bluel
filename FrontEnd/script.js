@@ -53,6 +53,7 @@ function filtrecategory(works) {
         } else {
             worksfilter = works.filter(work => work.category.id == project.dataset.id)
         }
+        console.log(project, worksfilter);
         gallery.innerHTML = "";
         displayworks(worksfilter);
     }) )
@@ -86,6 +87,9 @@ const blue = document.querySelector('.blue');
 const span = document.querySelector('#m');
 const span2 = document.querySelector('#m1');
 const logout = document.querySelector('#logout');
+const btnValid = document.querySelector("#valid");
+const validBtn = document.querySelector(".display_form");
+const alertM = document.querySelector("#errM");
 
 const photo = document.querySelector('#modulphoto');
 const modGallery = document.querySelector('#modulGallery');
@@ -143,11 +147,16 @@ function displayModal() {
         modGallery.style.display = "flex";
         preview.removeChild(preview.firstChild);
         resetForm();
+
     })
     const btnphoto = document.querySelector(".green");
     btnphoto.addEventListener("click", () => {
         photo.style.display = "flex";
         modGallery.style.display = "none";
+        if(btnValid.classList.contains("green")) {
+            btnValid.classList.remove("green");
+        }
+        alertM.innerHTML = "";
     })
     const deleteBtns = document.querySelectorAll("#trash")
     deleteBtns.forEach((btn) => {
@@ -156,12 +165,14 @@ function displayModal() {
         })
     })
     green();
-    const validBtn = document.querySelector(".display_form");
+
     validBtn.addEventListener("submit", (e) => {
         e.preventDefault();
         createFile();
         validation();
-        resetForm();
+        if(validation()){
+            resetForm();
+        }
     })
 }
 
@@ -200,7 +211,7 @@ async function createFile() {
     }
     ).then((res) => {
     if(res.ok && res.status === 201){
-        return res.json();
+        return res.json();  
     }
     }).then((data) => {
         const workArray = [data];
@@ -251,8 +262,10 @@ function validation() {
         title.focus();
         return false;
     }
-    if(img.files.length < 1){
-        alert("Sélectionner une image")
+    if(!img.files[0] || img.files[0] == ""){
+        console.log("test");
+        alertM.innerHTML = "Selectionner une image";
+        alertM.className = 'alert';
         preview.focus();
         return false;
     }
@@ -260,16 +273,28 @@ function validation() {
         photo.style.display = "none";
         modGallery.style.display = "flex";
     }
+
+    return true;
+
 }
 
 function green() {
     const img = document.querySelector('#newimg');
-    const btnValid = document.querySelector("#valid");
-
-    if(title.value !== "", img.files.length !==[]) {
-        btnValid.classList.add('green');
-    }
-    if(title.value == "", img.files.length ==[]){
-        btnValid.classList.remove('green');
-    }
+    console.log(title.value);
+    title.addEventListener("input" , () => {
+        console.log(img.files[0]);
+        if(title.value != "" && img.files[0] != "" && img.files[0]) {
+            btnValid.classList.add('green');
+        }else{
+            btnValid.classList.remove('green');
+        }
+    })
+    img.addEventListener("change", () => {
+        if(title.value != "" && img.files[0] != "" && img.files[0]) {
+            btnValid.classList.add('green');
+        }else{
+            btnValid.classList.remove('green');
+        }
+    })
+    validBtn.addEventListener("submit", validation);
 }
