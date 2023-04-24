@@ -3,7 +3,6 @@ const password = document.querySelector('#password');
 const form = document.querySelector('form');
 form.addEventListener("submit", (e) => {
     e.preventDefault();
-
     fetch('http://localhost:5678/api/users/login', {
         method: "POST",
         headers: {

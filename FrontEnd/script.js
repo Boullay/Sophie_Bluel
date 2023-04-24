@@ -1,5 +1,7 @@
 const gallery = document.querySelector('.gallery');
 const listWorks = document.querySelector('.list_works');
+let works = [];
+let worksFiltered = [];
 
 async function CategoriesId() {
     try {
@@ -30,10 +32,12 @@ CategoriesId();
 async function getWorks() {
     try {
         const response = await fetch('http://localhost:5678/api/works');
-        const works = await response.json();
+        const worksData = await response.json();
+        works = worksData;
+        worksFiltered = worksData;
 
-        displayworks(works);
-        filtrecategory(works);
+        displayworks();
+        filtrecategory();
         displayModal();
     } catch (error) {
         console.log(error);
@@ -42,38 +46,39 @@ async function getWorks() {
 
 getWorks();
 
-function filtrecategory(works) {
+function filtrecategory() {
     const projects = document.querySelectorAll('.btn_filtre')
-    projects.forEach((project) => project.addEventListener("click",() =>{
+    projects.forEach((project) => project.addEventListener("click", () => {
         projects.forEach(project2 => project2.classList.remove("active"))
         project.classList.add("active");
         let worksfilter = []
         if (project.classList.contains("all")) {
-            worksfilter = works
+            worksFiltered = works
         } else {
-            worksfilter = works.filter(work => work.category.id == project.dataset.id)
+            worksFiltered = works.filter(work => work.categoryId == project.dataset.id)
         }
-        console.log(project, worksfilter);
         gallery.innerHTML = "";
-        displayworks(worksfilter);
-    }) )
+        displayworks();
+    }))
 }
 
-function displayworks(works) {
-    works.map((work) => {
+function displayworks() {
+    gallery.innerHTML = '';
+    listWorks.innerHTML = '';
+    worksFiltered.map((work) => {
         // HomePage
         const workItem = document.createElement('figure');
         workItem.dataset.id = work.id;
         workItem.innerHTML = `<img src=${work.imageUrl} alt=${work.title}>
             <figcaption>${work.title}</figcaption>`
-            gallery.appendChild(workItem);
+        gallery.appendChild(workItem);
         // Modal
         const workItemModal = document.createElement('div');
         workItemModal.dataset.id = work.id;
         workItemModal.innerHTML = `<img src=${work.imageUrl} alt=${work.title}>
             <span id="trash" class="delete-work" data-id=${work.id}><i class="fa-solid fa-trash-can"></i></span>
             <span>Editer</span>`
-            listWorks.appendChild(workItemModal)
+        listWorks.appendChild(workItemModal)
     })
 }
 
@@ -94,8 +99,8 @@ const alertM = document.querySelector("#errM");
 const photo = document.querySelector('#modulphoto');
 const modGallery = document.querySelector('#modulGallery');
 
-function Logout(){
-    if (window.localStorage.getItem("accessToken")){
+function Logout() {
+    if (window.localStorage.getItem("accessToken")) {
         const filtre = document.querySelector(".projects");
         filtre.style.display = "none";
         login.style.display = "none";
@@ -153,7 +158,7 @@ function displayModal() {
     btnphoto.addEventListener("click", () => {
         photo.style.display = "flex";
         modGallery.style.display = "none";
-        if(btnValid.classList.contains("green")) {
+        if (btnValid.classList.contains("green")) {
             btnValid.classList.remove("green");
         }
         alertM.innerHTML = "";
@@ -170,22 +175,22 @@ function displayModal() {
         e.preventDefault();
         createFile();
         validation();
-        if(validation()){
+        if (validation()) {
             resetForm();
         }
     })
 }
 
 async function deleteFile(workId) {
-    const response= await fetch(
+    await fetch(
         `http://localhost:5678/api/works/${workId}`,
         {
             method: 'DELETE',
             headers: {'Authorization': `Bearer ${window.localStorage.getItem('accessToken')}`}
         },
     ).then((response) => {
-        if(response.ok && response.status === 204){
-            /*ici supprime l'image dans la modale et dans la page d'acceuil grace au workid en haut*/
+        if (response.ok && response.status === 204) {
+            works = works.filter(work => work.id != workId);
             const workDiv = document.querySelector(`div[data-id="${workId}"]`);
             const workFigure = document.querySelector(`figure[data-id="${workId}"]`);
             workDiv.remove();
@@ -204,24 +209,26 @@ async function createFile() {
     formData.append('title', title.value);
     formData.append('category', categoryId.value);
 
-    const response = await fetch('http://localhost:5678/api/works',
-    {body: formData,
-    method: 'POST',
-    headers: {'Authorization': `Bearer ${window.localStorage.getItem('accessToken')}`}
-    }
+    await fetch('http://localhost:5678/api/works',
+        {
+            body: formData,
+            method: 'POST',
+            headers: {'Authorization': `Bearer ${window.localStorage.getItem('accessToken')}`}
+        }
     ).then((res) => {
-    if(res.ok && res.status === 201){
-        return res.json();  
-    }
+        if (res.ok && res.status === 201) {
+            return res.json();
+        }
     }).then((data) => {
-        const workArray = [data];
-        displayworks(workArray)
+        works.push(data);
+        displayworks()
         const workTrashSpan = document.querySelector(`span[data-id="${data.id}"]`);
         workTrashSpan.addEventListener("click", () => {
             deleteFile(workTrashSpan.dataset.id);
         })
     })
 }
+
 function resetForm() {
     document.getElementById("titre").value = '';
     document.getElementById("newimg").value = '';
@@ -243,8 +250,9 @@ function updateImageDisplay() {
         preview.removeChild(preview.firstChild);
     }
     const curFiles = input.files;
-    if(curFiles.length === 0) {} else {
-        for(let i = 0; i < curFiles.length; i++) {
+    if (curFiles.length === 0) {
+    } else {
+        for (let i = 0; i < curFiles.length; i++) {
             const image = document.createElement('img');
             image.src = window.URL.createObjectURL(curFiles[i]);
     
@@ -273,16 +281,12 @@ function validation() {
         photo.style.display = "none";
         modGallery.style.display = "flex";
     }
-
     return true;
-
 }
 
 function green() {
     const img = document.querySelector('#newimg');
-    console.log(title.value);
     title.addEventListener("input" , () => {
-        console.log(img.files[0]);
         if(title.value != "" && img.files[0] != "" && img.files[0]) {
             btnValid.classList.add('green');
         }else{
